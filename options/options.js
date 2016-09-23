@@ -23,7 +23,7 @@ function save_options() {
 function restore_options() {
   // Default values
   chrome.storage.sync.get({
-    FileName: 'credentials.txt'
+    FileName: 'credentials'
   }, function(items) {
     document.getElementById('FileName').value = items.FileName;
   });

@@ -1,7 +1,7 @@
 // Global variables
-var FileName = 'credentials.txt';
+var FileName = 'credentials';
 
-// When this background process starts, load variables from chrome storage 
+// When this background process starts, load variables from chrome storage
 // from saved Extension Options
 loadItemsFromStorage();
 // Additionaly on start of the background process it is checked if this extension can be activated
@@ -48,13 +48,13 @@ function onBeforeRequestEvent(details) {
   domDoc = parser.parseFromString(samlXmlDoc, "text/xml");
   // Get a list of claims (= AWS roles) from the SAML assertion
   var roleDomNodes = domDoc.querySelectorAll('[Name="https://aws.amazon.com/SAML/Attributes/Role"]')[0].childNodes
-  // Parse the PrincipalArn and the RoleArn from the SAML Assertion.
-  var PrincipalArn = '';
+  // Parse the RoleArn and the PrincipalArn from the SAML Assertion.
   var RoleArn = '';
+  var PrincipalArn = '';
   var SAMLAssertion = details.requestBody.formData.SAMLResponse[0];
    // If there is more than 1 role in the claim, look at the 'roleIndex' HTTP Form data parameter to determine the role to assume
   if (roleDomNodes.length > 1 && "roleIndex" in details.requestBody.formData) {
-    for (i = 0; i < roleDomNodes.length; i++) { 
+    for (i = 0; i < roleDomNodes.length; i++) {
       var nodeValue = roleDomNodes[i].innerHTML;
       if (nodeValue.indexOf(details.requestBody.formData.roleIndex[0]) > -1) {
         // This DomNode holdes the data for the role to assume. Use these details for the assumeRoleWithSAML API call
@@ -85,11 +85,11 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
 	// Extraxt both regex patterns from SAMLAssertion attribute
 	RoleArn = samlattribute.match(reRole)[0];
 	PrincipalArn = samlattribute.match(rePrincipal)[0];
-    
+
 	// Set parameters needed for assumeRoleWithSAML method
 	var params = {
-		PrincipalArn: PrincipalArn,
 		RoleArn: RoleArn,
+    PrincipalArn: PrincipalArn,
 		SAMLAssertion: SAMLAssertion,
 	};
 	// Call STS API from AWS
@@ -99,13 +99,15 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
 		else {
 			// On succesful API response create file with the STS keys
 			let docContent = "[default] \n" +
+      "output = json" + " \n" +
+      "region = us-east-1" + " \n" +
 			"aws_access_key_id = " + data.Credentials.AccessKeyId + " \n" +
 			"aws_secret_access_key = " + data.Credentials.SecretAccessKey + " \n" +
-			"aws_session_token = " + data.Credentials.SessionToken;
+			"aws_session_token = " + data.Credentials.SessionToken + " \n";
 			let doc = URL.createObjectURL( new Blob([docContent], {type: 'application/octet-binary'}) );
 			// Triggers download of the generated file
 			chrome.downloads.download({ url: doc, filename: FileName, conflictAction: 'overwrite', saveAs: false });
-		}        
+		}
 	});
 }
 
@@ -137,7 +139,7 @@ chrome.runtime.onMessage.addListener(
 
 function loadItemsFromStorage() {
   chrome.storage.sync.get({
-    FileName: 'credentials.txt'
+    FileName: 'credentials'
   }, function(items) {
     FileName = items.FileName;
   });
